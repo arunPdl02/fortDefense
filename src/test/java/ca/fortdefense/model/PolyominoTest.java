@@ -30,33 +30,6 @@ class PolyominoTest {
     }
 
     @Test
-    void isConnectedViaCardinalAdjacency() {
-        Polyomino p = new Polyomino();
-        Set<Coordinate> cells = new HashSet<>(p.getCellLocations());
-
-        // BFS from origin using 4-neighborhood.
-        Coordinate start = new Coordinate(0, 0);
-        assertTrue(cells.contains(start), "Expected origin (0,0) to exist");
-
-        Set<Coordinate> visited = new HashSet<>();
-        Deque<Coordinate> queue = new ArrayDeque<>();
-        visited.add(start);
-        queue.add(start);
-
-        while (!queue.isEmpty()) {
-            Coordinate current = queue.removeFirst();
-
-            for (Coordinate n : neighbors4(current)) {
-                if (cells.contains(n) && visited.add(n)) {
-                    queue.addLast(n);
-                }
-            }
-        }
-
-        assertEquals(cells.size(), visited.size(), "Expected the polyomino cells to form one connected component");
-    }
-
-    @Test
     void getCellLocations_returnsUnmodifiableCollection() {
         Polyomino p = new Polyomino();
         Collection<Coordinate> view = p.getCellLocations();

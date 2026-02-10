@@ -38,17 +38,18 @@ class EnemyTest {
         List<Coordinate> fortCells = getAbsoluteFortCellsAsList(enemy);
 
         // Mark exactly one fort cell as shot; others unshot.
-        Set<Coordinate> shot = new HashSet<>();
-        shot.add(fortCells.get(0));
+        Set<String> shotKeys = new HashSet<>();
+        shotKeys.add(keyOf(fortCells.get(0)));
 
         when(board.hasCellBeenShot(any(Coordinate.class))).thenAnswer(invocation -> {
             Coordinate c = invocation.getArgument(0);
-            return shot.contains(c);
+            return shotKeys.contains(keyOf(c));
         });
 
         int expectedUndamaged = fortCells.size() - 1;
         assertEquals(expectedUndamaged, enemy.getUndamagedCellCount());
     }
+
 
     @Test
     void isFortDestroyed_trueWhenAllFortCellsShot_falseOtherwise() throws Exception {
@@ -80,14 +81,14 @@ class EnemyTest {
         for (int undamaged = 0; undamaged <= maxTestable; undamaged++) {
             int toShot = n - undamaged;
 
-            Set<Coordinate> shot = new HashSet<>();
+            Set<String> shotKeys = new HashSet<>();
             for (int i = 0; i < toShot && i < fortCells.size(); i++) {
-                shot.add(fortCells.get(i));
+                shotKeys.add(keyOf(fortCells.get(i)));
             }
 
             when(board.hasCellBeenShot(any(Coordinate.class))).thenAnswer(invocation -> {
                 Coordinate c = invocation.getArgument(0);
-                return shot.contains(c);
+                return shotKeys.contains(keyOf(c));
             });
 
             assertEquals(undamaged, enemy.getUndamagedCellCount(), "Unexpected undamaged count setup");
@@ -123,5 +124,9 @@ class EnemyTest {
         Field f = Enemy.class.getDeclaredField("startCell");
         f.setAccessible(true);
         return (Coordinate) f.get(enemy);
+    }
+
+    private static String keyOf(Coordinate c) {
+        return c.getRowIndex() + "," + c.getColIndex();
     }
 }
