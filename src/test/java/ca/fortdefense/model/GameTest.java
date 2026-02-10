@@ -18,15 +18,12 @@ class GameTest {
 
         Coordinate cell = new Coordinate(0, 0);
 
-        // Before shot: should be unshot
         assertFalse(game.getCellState(cell).hasBeenShot());
 
         game.recordPlayerShot(cell);
 
-        // After shot: cell must be shot
         assertTrue(game.getCellState(cell).hasBeenShot());
 
-        // Deterministic assertion: lastShotHit should equal whether that cell has a fort
         boolean cellHasFort = game.getCellState(cell).hasFort();
         assertEquals(cellHasFort, game.didLastPlayerShotHit());
     }
@@ -36,7 +33,6 @@ class GameTest {
         int numEnemies = 5;
         Game game = new Game(numEnemies);
 
-        // Before firing: score should be 0 and latest damages empty
         assertEquals(0, game.getEnemyPoints());
         assertArrayEquals(new int[0], game.getLatestEnemyDamages());
 
@@ -44,16 +40,16 @@ class GameTest {
 
         int[] damages = game.getLatestEnemyDamages();
 
-        // With your Enemy + Polyomino settings:
-        // - Each enemy starts with 5 undamaged cells -> getShotDamage() should be 20
-        // - damage 20 is > 0 so it's included
+        // With Polyomino.NUM_CELLS = 5, each enemy starts fully undamaged -> damage should be 20.
         assertEquals(numEnemies, damages.length, "Expected one damage entry per enemy on first fire");
 
+        int sum = 0;
         for (int dmg : damages) {
             assertEquals(20, dmg, "Expected initial enemy damage to be 20 when fort is undamaged");
+            sum += dmg;
         }
 
-        assertEquals(20 * numEnemies, game.getEnemyPoints(), "Enemy points should equal sum of latest damages");
+        assertEquals(sum, game.getEnemyPoints(), "Enemy points should equal sum of latest damages");
     }
 
     @Test
@@ -61,9 +57,8 @@ class GameTest {
         int numEnemies = 4;
         Game game = new Game(numEnemies);
 
-        assertEquals(numEnemies, game.getNumberOfActiveEnemies(),
-                "No forts should be destroyed at game start");
-        assertFalse(game.hasUserWon(), "User should not have won at start");
+        assertEquals(numEnemies, game.getNumberOfActiveEnemies());
+        assertFalse(game.hasUserWon());
     }
 
     @Test
@@ -77,6 +72,24 @@ class GameTest {
 
         game.fireEnemyShots();
         int afterSecond = game.getEnemyPoints();
-        assertEquals(2 * 20 * numEnemies, afterSecond, "Expected score to accumulate across rounds");
+        assertEquals(2 * 20 * numEnemies, afterSecond);
+    }
+
+    @Test
+    void hasUserLost_falseInitially_andTrueOnceScoreReachesMax() {
+        // Use enough enemies so we can reach MAX_SCORE quickly with repeated firing.
+        // Each firing adds 20 per enemy (initially), so 20 * 5 = 100 points per round.
+        int numEnemies = 5;
+        Game game = new Game(numEnemies);
+
+        assertFalse(game.hasUserLost(), "Should not be lost at start");
+
+        // Fire until we reach or exceed MAX_SCORE.
+        while (game.getEnemyPoints() < ScoreTracker.MAX_SCORE) {
+            game.fireEnemyShots();
+        }
+
+        assertTrue(game.hasUserLost(), "Should be lost once enemy points reach MAX_SCORE");
+        assertTrue(game.getEnemyPoints() >= ScoreTracker.MAX_SCORE);
     }
 }
