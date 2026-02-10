@@ -1,23 +1,39 @@
 package ca.fortdefense.restapi;
 
-/**
- * DTO class for the REST API to define object structures required by the front-end.
- * HINT: Create static factory methods (or constructors) which help create this object
- *       from the data stored in the model, or required by the model.
- */
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "Represents the current state of a game session")
 public class ApiGameDTO {
+
+    @Schema(description = "Unique game number", example = "1")
     public int gameNumber;
+
+    @Schema(description = "Indicates whether the game has been won")
     public boolean isGameWon;
+
+    @Schema(description = "Indicates whether the game has been lost")
     public boolean isGameLost;
+
+    @Schema(description = "Total points scored by the opponent", example = "12")
     public int opponentPoints;
+
+    @Schema(description = "Number of opponent forts still active", example = "3")
     public long numActiveOpponentForts;
 
-    // Amount of points that the opponents scored on the last time they fired.
-    // If opponents have not yet fired, then it should be an empty array (0 size).
+    @Schema(
+            description = "Points scored by the opponent in their most recent turn. Empty if the opponent has not fired yet.",
+            example = "[2, 3]"
+    )
     public int[] lastOpponentPoints;
 
-
-    public ApiGameDTO(int gameNumber, boolean isGameWon, boolean isGameLost, int opponentPoints, long numActiveOpponentForts, int[] lastOpponentPoints) {
+    public ApiGameDTO(
+            int gameNumber,
+            boolean isGameWon,
+            boolean isGameLost,
+            int opponentPoints,
+            long numActiveOpponentForts,
+            int[] lastOpponentPoints
+    ) {
         this.gameNumber = gameNumber;
         this.isGameWon = isGameWon;
         this.isGameLost = isGameLost;

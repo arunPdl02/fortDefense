@@ -1,15 +1,20 @@
 package ca.fortdefense.restapi;
 
-/**
- * DTO class for the REST API to define object structures required by the front-end.
- * HINT: Create static factory methods (or constructors) which help create this object
- *       from the data stored in the model, or required by the model.
- */
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "Represents the visible state of the game board")
 public class ApiBoardDTO {
+
+    @Schema(description = "Width of the board", example = "5")
     public int boardWidth;
+
+    @Schema(description = "Height of the board", example = "5")
     public int boardHeight;
 
-    // celState[row]col] = {"fog", "hit", "fort", "miss", "field"}
+    @Schema(
+            description = "2D array representing cell states on the board. Possible values: fog, hit, fort, miss, field",
+            example = "[[\"fog\",\"fog\"],[\"miss\",\"hit\"]]"
+    )
     public String[][] cellStates;
 
     public ApiBoardDTO(int boardWidth, int boardHeight, String[][] cellStates) {

@@ -8,6 +8,14 @@ import ca.fortdefense.model.Game;
 import ca.fortdefense.restapi.ApiBoardDTO;
 import ca.fortdefense.restapi.ApiGameDTO;
 import ca.fortdefense.restapi.ApiLocationDTO;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,6 +25,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
+@Tag(name = "Games", description = "Endpoints for creating, loading, and playing Fort Defense games")
 public class GameController {
     /*
     need controllers for:
@@ -28,12 +37,21 @@ public class GameController {
     private boolean cheatMode;
 
     @GetMapping("/api/about")
+    @Operation(summary = "Get author info", description = "Returns a simple string identifying the author of the service.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Author info returned")
+    })
     public String authorName() {
         return "Arun Paudel";
     }
 
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/api/games")
+    @Operation(summary = "Create a new game", description = "Creates a new game instance with default settings and returns the game metadata.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Game created",
+                    content = @Content(schema = @Schema(implementation = ApiGameDTO.class)))
+    })
     public ApiGameDTO makeNewGame() {
         Game newGame = new Game(5);
         games.add(newGame);
@@ -42,7 +60,16 @@ public class GameController {
     }
 
     @GetMapping("/api/games/{gameId}")
-    public ApiGameDTO loadGame(@PathVariable("gameId") int gameId) {
+    @Operation(summary = "Load a game", description = "Loads a previously created game by ID.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Game loaded",
+                    content = @Content(schema = @Schema(implementation = ApiGameDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Game ID not found")
+    })
+    public ApiGameDTO loadGame(
+            @Parameter(description = "Game ID (1-based)", example = "1", required = true)
+            @PathVariable("gameId") int gameId
+    ) {
         try {
             return GameMapper.toApiGameDTO(games.get(gameId - 1), nextId.get());
         } catch (IndexOutOfBoundsException e) {
@@ -51,7 +78,16 @@ public class GameController {
     }
 
     @GetMapping("/api/games/{gameId}/board")
-    public ApiBoardDTO makeNewBoard(@PathVariable("gameId") int gameId) {
+    @Operation(summary = "Get game board", description = "Returns the current board view for the game. Board output may change based on cheat state.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Board returned",
+                    content = @Content(schema = @Schema(implementation = ApiBoardDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Game ID not found")
+    })
+    public ApiBoardDTO makeNewBoard(
+            @Parameter(description = "Game ID (1-based)", example = "1", required = true)
+            @PathVariable("gameId") int gameId
+    ) {
         try {
             return GameMapper.toApiBoardDTO(games.get(gameId - 1), cheatMode);
         } catch (IndexOutOfBoundsException e) {
@@ -61,8 +97,22 @@ public class GameController {
 
     @ResponseStatus(HttpStatus.ACCEPTED)
     @PostMapping("/api/games/{gameId}/cheatstate")
-    public void cheatStateBoard(@PathVariable("gameId") int gameId,
-                                @RequestBody String cheatType) {
+    @Operation(summary = "Set cheat mode", description = "Enables cheat mode when provided the supported cheat code.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "202", description = "Cheat state updated"),
+            @ApiResponse(responseCode = "400", description = "Invalid cheat code"),
+            @ApiResponse(responseCode = "404", description = "Game ID not found")
+    })
+    public void cheatStateBoard(
+            @Parameter(description = "Game ID (1-based)", example = "1", required = true)
+            @PathVariable("gameId") int gameId,
+            @RequestBody(
+                    description = "Cheat code. Currently supported: SHOW_ALL",
+                    required = true,
+                    content = @Content(schema = @Schema(type = "string", example = "SHOW_ALL"))
+            )
+            @org.springframework.web.bind.annotation.RequestBody String cheatType
+    ) {
         if (gameId >= 1 && gameId <= games.size()) {
             if (cheatType.equals("SHOW_ALL")) {
                 cheatMode = true;
@@ -75,8 +125,22 @@ public class GameController {
     }
 
     @PostMapping("/api/games/{gameId}/moves")
-    public void cellAttacked(@PathVariable("gameId") int gameId,
-                             @RequestBody ApiLocationDTO inputCell) {
+    @Operation(summary = "Make a move", description = "Records a player's shot at a board location and triggers enemy shots.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Move processed"),
+            @ApiResponse(responseCode = "400", description = "Invalid move input"),
+            @ApiResponse(responseCode = "404", description = "Game ID not found")
+    })
+    public void cellAttacked(
+            @Parameter(description = "Game ID (1-based)", example = "1", required = true)
+            @PathVariable("gameId") int gameId,
+            @RequestBody(
+                    description = "Target cell location (row, col).",
+                    required = true,
+                    content = @Content(schema = @Schema(implementation = ApiLocationDTO.class))
+            )
+            @org.springframework.web.bind.annotation.RequestBody ApiLocationDTO inputCell
+    ) {
         try {
             Coordinate cell = new Coordinate(inputCell.row, inputCell.col);
             cell.rowAndColAreValid(inputCell.row, inputCell.col);
@@ -90,18 +154,15 @@ public class GameController {
         }
     }
 
-    @ResponseStatus(value = HttpStatus.NOT_FOUND,
-            reason = "Request ID not found.")
+    @ResponseStatus(value = HttpStatus.NOT_FOUND, reason = "Request ID not found.")
     @ExceptionHandler(IdNotFoundException.class)
     public void badIdExceptionHandler() {
-        //Nothing to do
+        // Nothing to do
     }
 
-    @ResponseStatus(value = HttpStatus.BAD_REQUEST,
-            reason = "Request input is not valid.")
+    @ResponseStatus(value = HttpStatus.BAD_REQUEST, reason = "Request input is not valid.")
     @ExceptionHandler(BadInputException.class)
     public void badRequestExceptionHandler() {
-        //Nothing to do
+        // Nothing to do
     }
-
 }

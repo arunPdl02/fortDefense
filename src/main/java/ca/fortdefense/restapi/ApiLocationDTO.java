@@ -1,11 +1,13 @@
 package ca.fortdefense.restapi;
 
-/**
- * DTO class for the REST API to define object structures required by the front-end.
- * HINT: Create static factory methods (or constructors) which help create this object
- *       from the data stored in the model, or required by the model.
- */
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "Represents a board coordinate selected by the player")
 public class ApiLocationDTO {
+
+    @Schema(description = "Row index on the board (0-based)", example = "2")
     public int row;
+
+    @Schema(description = "Column index on the board (0-based)", example = "3")
     public int col;
 }
