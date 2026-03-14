@@ -1,11 +1,13 @@
 package ca.fortdefense.mapper;
 
+import ca.fortdefense.database.User;
 import ca.fortdefense.model.Cell;
 import ca.fortdefense.model.Coordinate;
 import ca.fortdefense.model.Game;
 import ca.fortdefense.model.GameBoard;
 import ca.fortdefense.restapi.ApiBoardDTO;
 import ca.fortdefense.restapi.ApiGameDTO;
+import ca.fortdefense.restapi.ApiUserDTO;
 
 /**
  * Maps internal domain model objects to API-facing DTOs.
@@ -74,5 +76,9 @@ public class GameMapper {
         }
 
         return new ApiBoardDTO(boardWidth, boardHeight, cellStates);
+    }
+
+    public static ApiUserDTO toApiUserDTO(User user){
+        return new ApiUserDTO(user.getUserName(), user.getGameWon(), user.getGameLoss());
     }
 }

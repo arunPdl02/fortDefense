@@ -11,17 +11,35 @@
         <p>Welcome to the Fort Defense Game, written by <strong>{{authorName}}</strong>.</p>
 
         <!-- Manual buttons for control-->
-        <p>
-            <button type="button" v-on:click="newGame()">
+        <div>
+            <span v-if="loggedIn == false">
+                <form id="login" @submit.prevent="getUser(userNameInput)">
+                    <p>Enter your name:</p>
+                    <input
+                            type="text"
+                            placeholder="Name"
+                            v-model="userNameInput"
+                            @keyup.enter="getUser(userNameInput)"
+                    >
+                    <button type="button" v-on:click="getUser(userNameInput)">Enter</button>
+                </form>
+            </span>
+
+            <span v-if="loggedIn">
+                <h3>Welcome {{userNameInput}} </h3>
+                <p>Stats:</p>
+                <p>Win: {{gameWonCount}} Loss: {{gameLossCount}}</p>
+                <button type="button" v-on:click="newGame()">
                 New Game
-            </button>
+                </button>
+            </span>
 
             <span v-if="game != null">
                 <button type="button" v-on:click="cheatShowAll()">
                     Cheat: Show All
                 </button>
             </span>
-        </p>
+        </div>
 
         <!-- Game state -->
         <p v-if="game != null">

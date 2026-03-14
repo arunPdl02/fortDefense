@@ -5,11 +5,16 @@ const myAppObj = new Vue({
     el: "#gameApp",
     data: {
         authorName: "(waiting for server...)",
+        userNameInput: "",
+        loggedIn: false,
         game: null,
         board: null,
+        gameWonCount: null,
+        gameLossCount: null
     },
 
     methods: {
+        getUser: getUserInfo,
         newGame: makeNewGame,
         cheatShowAll: sendShowAll,
 
@@ -51,6 +56,24 @@ function loadAbout() {
         });
 }
 
+function getUserInfo(userName) {
+    if (!userName) {
+        console.warn("No name entered!");
+        return;
+    }
+
+    axios.get('api/user', { params: { name: userName } })
+        .then(function (response) {
+            myAppObj.gameWonCount = response.data.winCount;
+            myAppObj.gameLossCount = response.data.lossCount;
+            myAppObj.loggedIn = true;
+            console.log("logged in now", myAppObj.loggedIn)
+        })
+        .catch(function (error) {
+            console.error("Get User ERROR:", error);
+        });
+}
+
 function makeNewGame() {
     axios.post('api/games', {})
         .then(function (response) {
@@ -66,7 +89,7 @@ function makeNewGame() {
 }
 
 function loadGame() {
-    axios.get('/api/games/' + myAppObj.game.gameNumber, {})
+    return axios.get('/api/games/' + myAppObj.game.gameNumber, {})
       .then(function (response) {
         console.log("Load game returned:", response);
         myAppObj.game = response.data;
@@ -77,6 +100,7 @@ function loadGame() {
         console.log("Load game ERROR: ", error);
       });
 }
+
 function loadGameBoard() {
     axios.get('/api/games/' + myAppObj.game.gameNumber + "/board", {})
       .then(function (response) {
@@ -89,6 +113,7 @@ function loadGameBoard() {
         console.log("Load Board ERROR: ", error);
       });
 }
+
 function sendShowAll() {
     axios.post('/api/games/' + myAppObj.game.gameNumber + "/cheatstate", "SHOW_ALL", plainTextConfig)
         .then(function (response) {
@@ -105,7 +130,7 @@ function sendShowAll() {
 
 // Move
 function sendClick(rowIdx, colIdx) {
-    console.log("Clicked on (" + rowIdx + ", " + colIdx + ")")
+    console.log("Clicked on (" + rowIdx + ", " + colIdx + ")");
 
     if (myAppObj.game.isGameLost || myAppObj.game.isGameWon) {
         console.log("Unable to make move after game has ended.");
@@ -118,7 +143,14 @@ function sendClick(rowIdx, colIdx) {
         .then(function (response) {
             console.log("POST /moves:", response);
             loadGameBoard();
-            loadGame();
+            loadGame().then(function() {
+                if (myAppObj.game.isGameLost){
+                    incrementLoss();
+                }
+                if (myAppObj.game.isGameWon){
+                    incrementWin();
+                }
+            });
         })
         .catch(function (error) {
             // Did they bump the wall?
@@ -128,6 +160,28 @@ function sendClick(rowIdx, colIdx) {
             } else {
                 console.log("Move player ERROR:", error);
             }
+        });
+}
+
+function incrementLoss(){
+    axios.post('api/game/update/loss', null, { params: { name: myAppObj.userNameInput } })
+        .then(function (response){
+            console.log("POST /update/loss:", response);
+            myAppObj.gameLossCount = response.data.lossCount;
+        })
+        .catch(function (error) {
+            console.log("/update/loss ERROR: ", error);
+        });
+}
+
+function incrementWin(){
+    axios.post('api/games/update/win', null, { params: { name: myAppObj.userNameInput } })
+        .then(function (response){
+            console.log("POST /update/win:", response);
+            myAppObj.gameWonCount = response.data.winCount;
+        })
+        .catch(function (error) {
+            console.log("/update/win ERROR: ", error);
         });
 }
 

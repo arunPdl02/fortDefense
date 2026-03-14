@@ -1,5 +1,7 @@
 package ca.fortdefense.controllers;
 
+import ca.fortdefense.database.User;
+import ca.fortdefense.database.UserRepository;
 import ca.fortdefense.exception.BadInputException;
 import ca.fortdefense.exception.IdNotFoundException;
 import ca.fortdefense.mapper.GameMapper;
@@ -8,6 +10,7 @@ import ca.fortdefense.model.Game;
 import ca.fortdefense.restapi.ApiBoardDTO;
 import ca.fortdefense.restapi.ApiGameDTO;
 import ca.fortdefense.restapi.ApiLocationDTO;
+import ca.fortdefense.restapi.ApiUserDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -16,6 +19,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,14 +33,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 @RestController
 @Tag(name = "Games", description = "Endpoints for creating, loading, and playing Fort Defense games")
 public class GameController {
-    /*
-    need controllers for:
-    get /api/games/ + appObj
-    get /api/games/ + appObj + /moves
-     */
     private final List<Game> games = new ArrayList<>();
     private static final AtomicInteger nextId = new AtomicInteger();
     private boolean cheatMode;
+
+    @Autowired
+    private UserRepository repository;
 
     @GetMapping("/api/about")
     @Operation(summary = "Get author info", description = "Returns a simple string identifying the author of the service.")
@@ -45,6 +49,17 @@ public class GameController {
         return "Arun Paudel";
     }
 
+    @GetMapping("/api/user")
+    public ApiUserDTO userStatus(@RequestParam("name") String userName){
+        User u = repository.findByUserName(userName);
+        if (u == null){
+            User newUser = new User(userName, 0, 0);
+            repository.save(newUser);
+            return GameMapper.toApiUserDTO(newUser);
+        }
+        return GameMapper.toApiUserDTO(u);
+    }
+
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/api/games")
     @Operation(summary = "Create a new game", description = "Creates a new game instance with default settings and returns the game metadata.")
@@ -53,6 +68,7 @@ public class GameController {
                     content = @Content(schema = @Schema(implementation = ApiGameDTO.class)))
     })
     public ApiGameDTO makeNewGame() {
+        System.out.println("MONGO_PASSWORD=" + System.getenv("MONGO_PASSWORD"));
         Game newGame = new Game(5);
         games.add(newGame);
         cheatMode = false;
@@ -152,6 +168,22 @@ public class GameController {
         } catch (InvalidParameterException e) {
             throw new BadInputException(e.getMessage());
         }
+    }
+
+    @PostMapping("/api/game/update/loss")
+    public ApiUserDTO incrementLoss(@RequestParam("name") String userName){
+        User u = repository.findByUserName(userName);
+        u.incrementGameLoss();
+        repository.save(u);
+        return GameMapper.toApiUserDTO(u);
+    }
+
+    @PostMapping("/api/games/update/win")
+    public ApiUserDTO incrementWin(@RequestParam("name") String userName){
+        User u = repository.findByUserName(userName);
+        u.incrementGameWon();
+        repository.save(u);
+        return GameMapper.toApiUserDTO(u);
     }
 
     @ResponseStatus(value = HttpStatus.NOT_FOUND, reason = "Request ID not found.")
